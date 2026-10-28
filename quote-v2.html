@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Случайная цитата</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f2f5fb;
+    --card: #ffffff;
+    --text: #1b2230;
+    --muted: #6a7387;
+    --accent: #3f6fe0;
+    --border: rgba(27, 34, 48, 0.12);
+    --danger: #c0392b;
+    --shadow: 0 18px 44px -26px rgba(18, 28, 56, 0.45);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0e131e;
+      --card: #171f2e;
+      --text: #e7ecf7;
+      --muted: #96a1b6;
+      --accent: #6f96ff;
+      --border: rgba(231, 236, 247, 0.14);
+      --danger: #ff8a80;
+      --shadow: 0 18px 44px -26px rgba(0, 0, 0, 0.85);
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  [hidden] { display: none !important; }
+
+  html, body { min-height: 100%; }
+
+  body {
+    margin: 0;
+    padding: 24px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app {
+    width: 100%;
+    max-width: 720px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  .card {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    padding: clamp(20px, 4vw, 40px);
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+  }
+
+  .card__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+  }
+
+  .badge {
+    max-width: 100%;
+    overflow: hidden;
+    padding: 5px 11px;
+    border-radius: 999px;
+    background: rgba(63, 111, 224, 0.14);
+    color: var(--accent);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .card__footer {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    margin-left: auto;
+  }
+
+  .counter {
+    min-width: 4em;
+    padding: 0 2px;
+    color: var(--muted);
+    font-size: 0.82rem;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+  }
+
+  .quote {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 16px;
+    min-height: 190px;
+    margin: 0;
+  }
+
+  .quote__text {
+    margin: 0;
+    font-size: clamp(1.35rem, 3.6vw, 2rem);
+    font-weight: 600;
+    line-height: 1.36;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+
+  .quote__author {
+    max-width: 26ch;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--muted);
+    font-size: 0.85rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  @keyframes quote-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  .quote--enter { animation: quote-in 260ms ease-out; }
+
+  .placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 190px;
+    margin: 0;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .status {
+    min-height: 1.3em;
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.88rem;
+  }
+
+  .status--error { color: var(--danger); }
+  .status--ok { color: var(--accent); }
+
+  .btn {
+    appearance: none;
+    padding: 12px 18px;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s, color 0.15s, transform 0.1s, opacity 0.15s;
+  }
+
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn:active:not(:disabled) { transform: translateY(1px); }
+
+  .btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .btn--icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border-color: var(--border);
+    color: var(--muted);
+    font-size: 1.2rem;
+    line-height: 1;
+  }
+
+  .btn--icon:hover:not(:disabled) { border-color: currentColor; color: var(--text); }
+
+  .btn--icon svg {
+    display: block;
+    width: 16px;
+    height: 16px;
+  }
+
+  .btn--icon.is-ok {
+    border-color: currentColor;
+    color: var(--accent);
+  }
+
+  .btn--ghost {
+    border-color: var(--border);
+    color: var(--muted);
+  }
+
+  .btn--ghost:hover:not(:disabled) { color: var(--text); }
+
+  .toolbar .btn--ghost {
+    padding: 9px 14px;
+    font-size: 0.85rem;
+  }
+
+  .hint {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.8rem;
+    text-align: center;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+<main class="app">
+  <article class="card">
+    <div class="card__meta">
+      <span class="badge" id="category" hidden></span>
+
+      <div class="toolbar">
+        <span class="quote__author" id="quoteAuthor" aria-live="polite"></span>
+
+        <button type="button" class="btn btn--icon" id="copy" aria-label="Скопировать цитату" title="Скопировать (C)" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <rect x="9" y="9" width="12" height="12" rx="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <blockquote class="quote" id="quoteBox" aria-live="polite" hidden>
+      <p class="quote__text" id="quoteText"></p>
+    </blockquote>
+
+    <p class="placeholder" id="placeholder">Загрузка цитат…</p>
+
+    <p class="status" id="status" role="status"></p>
+
+    <div class="card__footer">
+      <div class="nav">
+        <button type="button" class="btn btn--icon" id="prev" aria-label="Предыдущая цитата" title="Предыдущая (←)" disabled>&#8249;</button>
+
+        <span class="counter" id="counter" hidden></span>
+
+        <button type="button" class="btn btn--icon" id="next" aria-label="Следующая цитата" title="Следующая (→)" disabled>&#8250;</button>
+
+        <button type="button" class="btn btn--ghost" id="retry" hidden>Повторить</button>
+      </div>
+    </div>
+  </article>
+
+  <noscript><p class="hint">Для работы страницы нужен включённый JavaScript.</p></noscript>
+</main>
+
+<script>
+(function () {
+  'use strict';
+
+  // Источник данных: https://github.com/gbigwave14-cyber/quotes-project
+  // raw.githubusercontent.com отдаёт Access-Control-Allow-Origin: *, поэтому fetch работает
+  // и при открытии страницы по file://
+  var SOURCE_URL = 'https://raw.githubusercontent.com/gbigwave14-cyber/quotes-project/main/quotes-ru.json';
+  var REQUEST_TIMEOUT_MS = 10000;
+  var FEEDBACK_MS = 1500;
+
+  var els = {
+    category: document.getElementById('category'),
+    counter: document.getElementById('counter'),
+    quoteBox: document.getElementById('quoteBox'),
+    quoteText: document.getElementById('quoteText'),
+    quoteAuthor: document.getElementById('quoteAuthor'),
+    placeholder: document.getElementById('placeholder'),
+    status: document.getElementById('status'),
+    prev: document.getElementById('prev'),
+    next: document.getElementById('next'),
+    copy: document.getElementById('copy'),
+    retry: document.getElementById('retry')
+  };
+
+  var state = {
+    quotes: [],
+    deck: [],
+    pos: -1,
+    loaded: false,
+    busy: false,
+    failed: false,
+    feedbackTimer: 0,
+    copyTimer: 0
+  };
+
+  // --- данные -------------------------------------------------------------
+
+  function normalize(data) {
+    if (!Array.isArray(data)) {
+      return [];
+    }
+    var result = [];
+    for (var i = 0; i < data.length; i++) {
+      var item = data[i];
+      if (!item || typeof item.text !== 'string' || item.text.trim() === '') {
+        continue;
+      }
+      result.push({
+        text: item.text.trim(),
+        author: typeof item.author === 'string' && item.author.trim() !== ''
+          ? item.author.trim()
+          : 'Неизвестный автор',
+        category: typeof item.category === 'string' ? item.category.trim() : ''
+      });
+    }
+    return result;
+  }
+
+  function shuffle(list) {
+    var copy = list.slice();
+    for (var i = copy.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = copy[i];
+      copy[i] = copy[j];
+      copy[j] = tmp;
+    }
+    return copy;
+  }
+
+  function sameQuote(a, b) {
+    return !!a && !!b && a.text === b.text && a.author === b.author;
+  }
+
+  function load() {
+    if (state.busy) {
+      return;
+    }
+
+    state.busy = true;
+    state.loaded = false;
+    state.failed = false;
+    state.quotes = [];
+    state.deck = [];
+    state.pos = -1;
+
+    setStatus('', '');
+    showPlaceholder('Загрузка цитат…');
+    updateControls();
+
+    var controller = typeof AbortController === 'function' ? new AbortController() : null;
+    var timer = window.setTimeout(function () {
+      if (controller) {
+        controller.abort();
+      }
+    }, REQUEST_TIMEOUT_MS);
+
+    var options = { cache: 'no-store' };
+    if (controller) {
+      options.signal = controller.signal;
+    }
+
+    fetch(SOURCE_URL, options)
+      .then(function (response) {
+        if (!response.ok) {
+          throw new Error('Сервер вернул код ' + response.status);
+        }
+        return response.json();
+      })
+      .then(function (data) {
+        var quotes = normalize(data);
+        if (!quotes.length) {
+          throw new Error('В файле не найдено ни одной корректной цитаты');
+        }
+        state.quotes = quotes;
+        state.deck = shuffle(quotes);
+        state.pos = -1;
+        state.loaded = true;
+        els.placeholder.hidden = true;
+        advanceDeck();
+        setStatus('Загружено цитат: ' + quotes.length, 'ok');
+      })
+      .catch(function (error) {
+        state.failed = true;
+        state.loaded = false;
+        showPlaceholder('Цитаты недоступны');
+        setStatus(describeError(error), 'error');
+      })
+      .then(function () {
+        window.clearTimeout(timer);
+        state.busy = false;
+        updateControls();
+      });
+  }
+
+  function describeError(error) {
+    if (!error) {
+      return 'Не удалось загрузить цитаты.';
+    }
+    if (error.name === 'AbortError') {
+      return 'GitHub не ответил за ' + (REQUEST_TIMEOUT_MS / 1000) + ' с. Попробуйте ещё раз.';
+    }
+    if (error instanceof TypeError) {
+      return 'Не удалось загрузить цитаты. Проверьте подключение к интернету и нажмите «Повторить».';
+    }
+    return error.message || 'Не удалось загрузить цитаты.';
+  }
+
+  // --- отображение --------------------------------------------------------
+
+  function render() {
+    var quote = state.deck[state.pos];
+    if (!quote) {
+      return;
+    }
+
+    els.quoteText.textContent = quote.text;
+    els.quoteAuthor.textContent = '— ' + quote.author;
+    els.quoteAuthor.title = quote.author;
+
+    els.category.textContent = quote.category;
+    els.category.hidden = !quote.category;
+
+    els.counter.textContent = (state.pos + 1) + ' / ' + state.deck.length;
+    els.counter.hidden = false;
+
+    els.placeholder.hidden = true;
+    els.quoteBox.hidden = false;
+
+    restartAnimation(els.quoteBox);
+    updateControls();
+  }
+
+  function restartAnimation(element) {
+    element.classList.remove('quote--enter');
+    // принудительный reflow, чтобы анимация проигралась заново
+    void element.offsetWidth;
+    element.classList.add('quote--enter');
+  }
+
+  function showPlaceholder(text) {
+    els.placeholder.textContent = text;
+    els.placeholder.hidden = false;
+    els.quoteBox.hidden = true;
+    els.category.hidden = true;
+    els.counter.hidden = true;
+    els.quoteText.textContent = '';
+    els.quoteAuthor.textContent = '';
+    els.quoteAuthor.title = '';
+  }
+
+  function setStatus(message, kind) {
+    window.clearTimeout(state.feedbackTimer);
+    els.status.textContent = message || '';
+    els.status.className = 'status' + (kind ? ' status--' + kind : '');
+    if (message && kind === 'ok') {
+      state.feedbackTimer = window.setTimeout(function () {
+        els.status.textContent = '';
+        els.status.className = 'status';
+      }, FEEDBACK_MS);
+    }
+  }
+
+  function updateControls() {
+    var ready = state.loaded && state.deck.length > 0;
+
+    els.next.disabled = !ready || state.busy;
+    els.prev.disabled = !ready || state.busy || state.pos <= 0;
+    els.copy.disabled = !ready;
+    els.retry.hidden = !state.failed;
+    els.retry.disabled = state.busy;
+  }
+
+  // --- навигация ----------------------------------------------------------
+  // Цитаты идут по перемешанной колоде: каждый проход показывает все цитаты по одному разу.
+  // Когда колода закончилась, она перемешивается заново (без повтора текущей цитаты).
+
+  // без проверки занятости: используется в том числе сразу после загрузки данных,
+  // пока флаг state.busy ещё не сброшен
+  function advanceDeck() {
+    if (!state.deck.length) {
+      return;
+    }
+
+    if (state.pos + 1 >= state.deck.length) {
+      var current = state.deck[state.pos];
+      state.deck = shuffle(state.quotes);
+      if (state.deck.length > 1 && sameQuote(state.deck[0], current)) {
+        var swapIndex = 1 + Math.floor(Math.random() * (state.deck.length - 1));
+        var tmp = state.deck[0];
+        state.deck[0] = state.deck[swapIndex];
+        state.deck[swapIndex] = tmp;
+      }
+      state.pos = 0;
+    } else {
+      state.pos += 1;
+    }
+
+    render();
+  }
+
+  function showNext() {
+    if (!state.loaded || state.busy) {
+      return;
+    }
+    advanceDeck();
+  }
+
+  function showPrev() {
+    if (!state.loaded || state.busy || state.pos <= 0) {
+      return;
+    }
+    state.pos -= 1;
+    render();
+  }
+
+  // --- копирование --------------------------------------------------------
+
+  function legacyCopy(text) {
+    var area = document.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', '');
+    area.style.position = 'fixed';
+    area.style.top = '-1000px';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    area.select();
+    var copied = false;
+    try {
+      copied = document.execCommand('copy');
+    } catch (error) {
+      copied = false;
+    }
+    document.body.removeChild(area);
+    return copied;
+  }
+
+  function writeClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text).then(
+        function () { return true; },
+        function () { return legacyCopy(text); }
+      );
+    }
+    return Promise.resolve(legacyCopy(text));
+  }
+
+  function copyCurrent() {
+    var quote = state.deck[state.pos];
+    if (!quote) {
+      return;
+    }
+
+    var payload = '«' + quote.text + '»\n— ' + quote.author +
+      (quote.category ? ' (' + quote.category + ')' : '');
+
+    writeClipboard(payload).then(function (copied) {
+      setStatus(copied ? 'Скопировано ✓' : 'Не удалось скопировать в буфер обмена', copied ? 'ok' : 'error');
+      if (copied) {
+        window.clearTimeout(state.copyTimer);
+        els.copy.classList.add('is-ok');
+        state.copyTimer = window.setTimeout(function () {
+          els.copy.classList.remove('is-ok');
+        }, FEEDBACK_MS);
+      }
+    });
+  }
+
+  // --- события ------------------------------------------------------------
+
+  els.next.addEventListener('click', showNext);
+  els.prev.addEventListener('click', showPrev);
+  els.copy.addEventListener('click', copyCurrent);
+  els.retry.addEventListener('click', load);
+
+  function isTypingContext(element) {
+    if (!element || !element.tagName) {
+      return false;
+    }
+    var tag = element.tagName;
+    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || element.isContentEditable === true;
+  }
+
+  document.addEventListener('keydown', function (event) {
+    if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) {
+      return;
+    }
+    if (isTypingContext(event.target)) {
+      return;
+    }
+
+    var key = event.key;
+
+    if (key === 'ArrowRight') {
+      event.preventDefault();
+      showNext();
+      return;
+    }
+
+    if (key === 'ArrowLeft') {
+      event.preventDefault();
+      showPrev();
+      return;
+    }
+
+    if (key === ' ' || key === 'Spacebar' || key === 'Enter') {
+      // если фокус на кнопке — не мешаем её собственному действию
+      if (event.target && event.target.tagName === 'BUTTON') {
+        return;
+      }
+      event.preventDefault();
+      showNext();
+      return;
+    }
+
+    if (!event.shiftKey && key.length === 1) {
+      var lower = key.toLowerCase();
+      // 'c' — латиница, 'с' — та же клавиша в русской раскладке
+      if (lower === 'c' || lower === 'с') {
+        event.preventDefault();
+        copyCurrent();
+      }
+    }
+  });
+
+  load();
+}());
+</script>
+</body>
+</html>
