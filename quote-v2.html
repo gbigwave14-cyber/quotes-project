@@ -10,11 +10,12 @@
     --bg: #f2f5fb;
     --card: #ffffff;
     --text: #1b2230;
-    --muted: #6a7387;
+    --muted: #5c6577;
     --accent: #3f6fe0;
     --border: rgba(27, 34, 48, 0.12);
     --danger: #c0392b;
     --shadow: 0 18px 44px -26px rgba(18, 28, 56, 0.45);
+    --quote-min-h: 150px;
   }
 
   @media (prefers-color-scheme: dark) {
@@ -34,9 +35,9 @@
 
   [hidden] { display: none !important; }
 
-  html, body { min-height: 100%; }
-
   body {
+    min-height: 100vh;
+    min-height: 100dvh;
     margin: 0;
     padding: 24px 16px;
     display: flex;
@@ -58,7 +59,7 @@
   }
 
   .card {
-    display: flex;
+    display: inline;
     flex-direction: column;
     gap: 22px;
     padding: clamp(20px, 4vw, 40px);
@@ -80,7 +81,7 @@
     overflow: hidden;
     padding: 5px 11px;
     border-radius: 999px;
-    background: rgba(63, 111, 224, 0.14);
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
     color: var(--accent);
     font-size: 0.72rem;
     font-weight: 700;
@@ -90,14 +91,10 @@
     white-space: nowrap;
   }
 
-  .card__footer {
-    display: flex;
-    justify-content: flex-end;
-  }
-
   .nav {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 8px;
   }
 
@@ -123,7 +120,7 @@
     flex-direction: column;
     justify-content: center;
     gap: 16px;
-    min-height: 190px;
+    min-height: var(--quote-min-h);
     margin: 0;
   }
 
@@ -144,6 +141,7 @@
     font-size: 0.85rem;
     text-overflow: ellipsis;
     white-space: nowrap;
+    margin-right: 20px;
   }
 
   @keyframes quote-in {
@@ -157,7 +155,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 190px;
+    min-height: var(--quote-min-h);
     margin: 0;
     color: var(--muted);
     text-align: center;
@@ -184,7 +182,7 @@
     font-size: 0.95rem;
     font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.15s, border-color 0.15s, color 0.15s, transform 0.1s, opacity 0.15s;
+    transition: background-color 0.15s, border-color 0.15s, color 0.15s, transform 0.1s;
   }
 
   .btn:disabled { opacity: 0.45; cursor: not-allowed; }
@@ -208,17 +206,17 @@
     line-height: 1;
   }
 
-  .btn--icon:hover:not(:disabled) { border-color: currentColor; color: var(--text); }
+  .btn--icon:hover:not(:disabled),
+  .btn--icon.is-ok { border-color: currentColor; }
+
+  .btn--icon:hover:not(:disabled) { color: var(--text); }
+
+  .btn--icon.is-ok { color: var(--accent); }
 
   .btn--icon svg {
     display: block;
     width: 16px;
     height: 16px;
-  }
-
-  .btn--icon.is-ok {
-    border-color: currentColor;
-    color: var(--accent);
   }
 
   .btn--ghost {
@@ -228,7 +226,7 @@
 
   .btn--ghost:hover:not(:disabled) { color: var(--text); }
 
-  .toolbar .btn--ghost {
+  .btn--sm {
     padding: 9px 14px;
     font-size: 0.85rem;
   }
@@ -256,7 +254,7 @@
       <span class="badge" id="category" hidden></span>
 
       <div class="toolbar">
-        <span class="quote__author" id="quoteAuthor" aria-live="polite"></span>
+        <span class="quote__author" id="quoteAuthor" aria-live="polite" hidden></span>
 
         <button type="button" class="btn btn--icon" id="copy" aria-label="Скопировать цитату" title="Скопировать (C)" disabled>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
@@ -275,16 +273,14 @@
 
     <p class="status" id="status" role="status"></p>
 
-    <div class="card__footer">
-      <div class="nav">
-        <button type="button" class="btn btn--icon" id="prev" aria-label="Предыдущая цитата" title="Предыдущая (←)" disabled>&#8249;</button>
+    <div class="nav">
+      <button type="button" class="btn btn--icon" id="prev" aria-label="Предыдущая цитата" title="Предыдущая (←)" disabled>&#8249;</button>
 
-        <span class="counter" id="counter" hidden></span>
+      <span class="counter" id="counter" hidden></span>
 
-        <button type="button" class="btn btn--icon" id="next" aria-label="Следующая цитата" title="Следующая (→)" disabled>&#8250;</button>
+      <button type="button" class="btn btn--icon" id="next" aria-label="Следующая цитата" title="Следующая (→)" disabled>&#8250;</button>
 
-        <button type="button" class="btn btn--ghost" id="retry" hidden>Повторить</button>
-      </div>
+      <button type="button" class="btn btn--ghost btn--sm" id="retry" hidden>Повторить</button>
     </div>
   </article>
 
@@ -292,17 +288,25 @@
 </main>
 
 <script>
-(function () {
+(() => {
   'use strict';
 
   // Источник данных: https://github.com/gbigwave14-cyber/quotes-project
   // raw.githubusercontent.com отдаёт Access-Control-Allow-Origin: *, поэтому fetch работает
   // и при открытии страницы по file://
-  var SOURCE_URL = 'https://raw.githubusercontent.com/gbigwave14-cyber/quotes-project/main/quotes-ru.json';
-  var REQUEST_TIMEOUT_MS = 10000;
-  var FEEDBACK_MS = 1500;
+  const SOURCE_URL = 'https://raw.githubusercontent.com/gbigwave14-cyber/quotes-project/main/quotes-ru.json';
+  const REQUEST_TIMEOUT_MS = 10000;
+  const FEEDBACK_MS = 1500;
 
-  var els = {
+  // Из файла берутся только цитаты этих категорий (регистр не важен).
+  // Пустой массив — без фильтра: показываются все корректные записи.
+  const CATEGORIES = ['Мудрость', 'Мотивация', 'Работа'];
+
+  // Набор цитат кэшируется на текущий календарный день: пока кэш свежий,
+  // страница не обращается к сети вообще.
+  const CACHE_KEY = 'quotes-cache-v1';
+
+  const els = {
     category: document.getElementById('category'),
     counter: document.getElementById('counter'),
     quoteBox: document.getElementById('quoteBox'),
@@ -316,348 +320,347 @@
     retry: document.getElementById('retry')
   };
 
-  var state = {
+  const state = {
     quotes: [],
     deck: [],
-    pos: -1,
-    loaded: false,
-    busy: false,
-    failed: false,
-    feedbackTimer: 0,
-    copyTimer: 0
+    pos: 0,
+    phase: 'idle' // idle | loading | ready | error
   };
+
+  let statusTimer = 0;
+  let copyTimer = 0;
 
   // --- данные -------------------------------------------------------------
 
-  function normalize(data) {
+  const isWanted = (category) =>
+    CATEGORIES.length === 0 ||
+    CATEGORIES.some((name) => name.toLowerCase() === category.toLowerCase());
+
+  const normalize = (data) => {
     if (!Array.isArray(data)) {
       return [];
     }
-    var result = [];
-    for (var i = 0; i < data.length; i++) {
-      var item = data[i];
-      if (!item || typeof item.text !== 'string' || item.text.trim() === '') {
-        continue;
-      }
-      result.push({
+    return data
+      .filter((item) => item && typeof item.text === 'string' && item.text.trim() !== '')
+      .map((item) => ({
         text: item.text.trim(),
         author: typeof item.author === 'string' && item.author.trim() !== ''
           ? item.author.trim()
           : 'Неизвестный автор',
         category: typeof item.category === 'string' ? item.category.trim() : ''
-      });
-    }
-    return result;
-  }
+      }))
+      .filter((quote) => isWanted(quote.category));
+  };
 
-  function shuffle(list) {
-    var copy = list.slice();
-    for (var i = copy.length - 1; i > 0; i--) {
-      var j = Math.floor(Math.random() * (i + 1));
-      var tmp = copy[i];
-      copy[i] = copy[j];
-      copy[j] = tmp;
+  const shuffle = (list) => {
+    const copy = list.slice();
+    for (let i = copy.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]];
     }
     return copy;
-  }
+  };
 
-  function sameQuote(a, b) {
-    return !!a && !!b && a.text === b.text && a.author === b.author;
-  }
+  const emptyMessage = () =>
+    CATEGORIES.length
+      ? 'В файле нет цитат в категориях: ' + CATEGORIES.join(', ')
+      : 'В файле не найдено ни одной корректной цитаты';
 
-  function load() {
-    if (state.busy) {
+  // --- кэш на день --------------------------------------------------------
+  // Кэш необязателен: если localStorage недоступен (приватный режим, запрет
+  // хранилища, битые данные), страница просто работает как раньше — с сетью.
+
+  const todayKey = () => {
+    const now = new Date();
+    const pad = (value) => String(value).padStart(2, '0');
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  };
+
+  const sameCategories = (cached) =>
+    Array.isArray(cached) &&
+    cached.length === CATEGORIES.length &&
+    cached.every((name, index) => name === CATEGORIES[index]);
+
+  const readCache = () => {
+    try {
+      const entry = JSON.parse(localStorage.getItem(CACHE_KEY));
+      if (!entry || entry.day !== todayKey()) return null;
+      if (entry.url !== SOURCE_URL || !sameCategories(entry.categories)) return null;
+      const quotes = normalize(entry.quotes);
+      return quotes.length ? quotes : null;
+    } catch (error) {
+      return null;
+    }
+  };
+
+  const writeCache = (quotes) => {
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify({
+        day: todayKey(),
+        url: SOURCE_URL,
+        categories: CATEGORIES,
+        quotes
+      }));
+    } catch (error) {
+      // кэш — только оптимизация, ошибка записи ничего не ломает
+    }
+  };
+
+  // --- загрузка -----------------------------------------------------------
+
+  async function load() {
+    if (state.phase === 'loading') {
       return;
     }
 
-    state.busy = true;
-    state.loaded = false;
-    state.failed = false;
+    state.phase = 'loading';
     state.quotes = [];
     state.deck = [];
-    state.pos = -1;
+    state.pos = 0;
+    flash('');
+    draw();
 
-    setStatus('', '');
-    showPlaceholder('Загрузка цитат…');
-    updateControls();
-
-    var controller = typeof AbortController === 'function' ? new AbortController() : null;
-    var timer = window.setTimeout(function () {
-      if (controller) {
-        controller.abort();
-      }
-    }, REQUEST_TIMEOUT_MS);
-
-    var options = { cache: 'no-store' };
-    if (controller) {
-      options.signal = controller.signal;
+    const cached = readCache();
+    if (cached) {
+      apply(cached);
+      flash('Цитат из кэша: ' + cached.length, 'ok');
+      return;
     }
 
-    fetch(SOURCE_URL, options)
-      .then(function (response) {
-        if (!response.ok) {
-          throw new Error('Сервер вернул код ' + response.status);
-        }
-        return response.json();
-      })
-      .then(function (data) {
-        var quotes = normalize(data);
-        if (!quotes.length) {
-          throw new Error('В файле не найдено ни одной корректной цитаты');
-        }
-        state.quotes = quotes;
-        state.deck = shuffle(quotes);
-        state.pos = -1;
-        state.loaded = true;
-        els.placeholder.hidden = true;
-        advanceDeck();
-        setStatus('Загружено цитат: ' + quotes.length, 'ok');
-      })
-      .catch(function (error) {
-        state.failed = true;
-        state.loaded = false;
-        showPlaceholder('Цитаты недоступны');
-        setStatus(describeError(error), 'error');
-      })
-      .then(function () {
-        window.clearTimeout(timer);
-        state.busy = false;
-        updateControls();
-      });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+    try {
+      const response = await fetch(SOURCE_URL, { cache: 'no-cache', signal: controller.signal });
+      if (!response.ok) {
+        throw new Error('Сервер вернул код ' + response.status);
+      }
+      const quotes = normalize(await response.json());
+      if (!quotes.length) {
+        throw new Error(emptyMessage());
+      }
+      writeCache(quotes);
+      apply(quotes);
+      flash('Загружено цитат: ' + quotes.length, 'ok');
+    } catch (error) {
+      state.phase = 'error';
+      draw();
+      flash(describeError(error), 'error');
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
-  function describeError(error) {
+  function apply(quotes) {
+    state.quotes = quotes;
+    state.deck = shuffle(quotes);
+    state.pos = 0;
+    state.phase = 'ready';
+    draw();
+  }
+
+  const describeError = (error) => {
     if (!error) {
       return 'Не удалось загрузить цитаты.';
     }
     if (error.name === 'AbortError') {
-      return 'GitHub не ответил за ' + (REQUEST_TIMEOUT_MS / 1000) + ' с. Попробуйте ещё раз.';
+      return 'Источник не ответил за ' + (REQUEST_TIMEOUT_MS / 1000) + ' с. Попробуйте ещё раз.';
     }
     if (error instanceof TypeError) {
       return 'Не удалось загрузить цитаты. Проверьте подключение к интернету и нажмите «Повторить».';
     }
     return error.message || 'Не удалось загрузить цитаты.';
-  }
+  };
 
   // --- отображение --------------------------------------------------------
 
-  function render() {
-    var quote = state.deck[state.pos];
-    if (!quote) {
-      return;
+  // Единственная точка, которая включает и выключает части интерфейса
+  // по текущей фазе state.phase
+  function draw() {
+    const quote = state.phase === 'ready' ? state.deck[state.pos] : null;
+
+    if (quote) {
+      // live-регионы сначала показываем, потом наполняем:
+      // текст, добавленный в скрытый элемент, часть AT не озвучивает
+      els.quoteBox.hidden = false;
+      els.quoteText.textContent = quote.text;
+
+      els.quoteAuthor.hidden = false;
+      els.quoteAuthor.textContent = '— ' + quote.author;
+      els.quoteAuthor.title = quote.author;
+
+      els.category.textContent = quote.category;
+      els.category.hidden = !quote.category;
+
+      els.counter.textContent = (state.pos + 1) + ' / ' + state.deck.length;
+      els.counter.hidden = false;
+
+      els.placeholder.hidden = true;
+      els.copy.classList.remove('is-ok');
+
+      // перезапуск анимации: снять класс, форсировать reflow, вернуть класс
+      els.quoteBox.classList.remove('quote--enter');
+      void els.quoteBox.offsetWidth;
+      els.quoteBox.classList.add('quote--enter');
+    } else {
+      els.quoteBox.hidden = true;
+      els.quoteText.textContent = '';
+
+      els.quoteAuthor.textContent = '';
+      els.quoteAuthor.title = '';
+      els.quoteAuthor.hidden = true;
+
+      els.category.textContent = '';
+      els.category.hidden = true;
+
+      els.counter.hidden = true;
+
+      els.placeholder.textContent = state.phase === 'error' ? 'Цитаты недоступны' : 'Загрузка цитат…';
+      els.placeholder.hidden = false;
     }
 
-    els.quoteText.textContent = quote.text;
-    els.quoteAuthor.textContent = '— ' + quote.author;
-    els.quoteAuthor.title = quote.author;
-
-    els.category.textContent = quote.category;
-    els.category.hidden = !quote.category;
-
-    els.counter.textContent = (state.pos + 1) + ' / ' + state.deck.length;
-    els.counter.hidden = false;
-
-    els.placeholder.hidden = true;
-    els.quoteBox.hidden = false;
-
-    restartAnimation(els.quoteBox);
-    updateControls();
+    els.prev.disabled = !quote || state.pos <= 0;
+    els.next.disabled = !quote;
+    els.copy.disabled = !quote;
+    els.retry.hidden = state.phase !== 'error';
   }
 
-  function restartAnimation(element) {
-    element.classList.remove('quote--enter');
-    // принудительный reflow, чтобы анимация проигралась заново
-    void element.offsetWidth;
-    element.classList.add('quote--enter');
-  }
-
-  function showPlaceholder(text) {
-    els.placeholder.textContent = text;
-    els.placeholder.hidden = false;
-    els.quoteBox.hidden = true;
-    els.category.hidden = true;
-    els.counter.hidden = true;
-    els.quoteText.textContent = '';
-    els.quoteAuthor.textContent = '';
-    els.quoteAuthor.title = '';
-  }
-
-  function setStatus(message, kind) {
-    window.clearTimeout(state.feedbackTimer);
+  function flash(message, kind) {
+    clearTimeout(statusTimer);
     els.status.textContent = message || '';
     els.status.className = 'status' + (kind ? ' status--' + kind : '');
     if (message && kind === 'ok') {
-      state.feedbackTimer = window.setTimeout(function () {
+      statusTimer = setTimeout(() => {
         els.status.textContent = '';
         els.status.className = 'status';
       }, FEEDBACK_MS);
     }
   }
 
-  function updateControls() {
-    var ready = state.loaded && state.deck.length > 0;
-
-    els.next.disabled = !ready || state.busy;
-    els.prev.disabled = !ready || state.busy || state.pos <= 0;
-    els.copy.disabled = !ready;
-    els.retry.hidden = !state.failed;
-    els.retry.disabled = state.busy;
-  }
-
   // --- навигация ----------------------------------------------------------
   // Цитаты идут по перемешанной колоде: каждый проход показывает все цитаты по одному разу.
   // Когда колода закончилась, она перемешивается заново (без повтора текущей цитаты).
 
-  // без проверки занятости: используется в том числе сразу после загрузки данных,
-  // пока флаг state.busy ещё не сброшен
-  function advanceDeck() {
-    if (!state.deck.length) {
+  function next() {
+    if (state.phase !== 'ready') {
       return;
     }
 
     if (state.pos + 1 >= state.deck.length) {
-      var current = state.deck[state.pos];
+      const current = state.deck[state.pos];
       state.deck = shuffle(state.quotes);
-      if (state.deck.length > 1 && sameQuote(state.deck[0], current)) {
-        var swapIndex = 1 + Math.floor(Math.random() * (state.deck.length - 1));
-        var tmp = state.deck[0];
-        state.deck[0] = state.deck[swapIndex];
-        state.deck[swapIndex] = tmp;
+      if (state.deck.length > 1 && state.deck[0].text === current.text && state.deck[0].author === current.author) {
+        const swapIndex = 1 + Math.floor(Math.random() * (state.deck.length - 1));
+        [state.deck[0], state.deck[swapIndex]] = [state.deck[swapIndex], state.deck[0]];
       }
       state.pos = 0;
     } else {
       state.pos += 1;
     }
 
-    render();
+    draw();
   }
 
-  function showNext() {
-    if (!state.loaded || state.busy) {
-      return;
-    }
-    advanceDeck();
-  }
-
-  function showPrev() {
-    if (!state.loaded || state.busy || state.pos <= 0) {
+  function prev() {
+    if (state.phase !== 'ready' || state.pos <= 0) {
       return;
     }
     state.pos -= 1;
-    render();
+    draw();
   }
 
   // --- копирование --------------------------------------------------------
 
-  function legacyCopy(text) {
-    var area = document.createElement('textarea');
-    area.value = text;
-    area.setAttribute('readonly', '');
-    area.style.position = 'fixed';
-    area.style.top = '-1000px';
-    area.style.opacity = '0';
-    document.body.appendChild(area);
-    area.select();
-    var copied = false;
+  const legacyCopy = (text) => {
+    const area = document.createElement('textarea');
     try {
-      copied = document.execCommand('copy');
+      area.value = text;
+      area.setAttribute('readonly', '');
+      area.style.position = 'fixed';
+      area.style.top = '-1000px';
+      area.style.opacity = '0';
+      document.body.appendChild(area);
+      area.select();
+      return document.execCommand('copy');
     } catch (error) {
-      copied = false;
+      return false;
+    } finally {
+      area.remove();
     }
-    document.body.removeChild(area);
-    return copied;
-  }
+  };
 
-  function writeClipboard(text) {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      return navigator.clipboard.writeText(text).then(
-        function () { return true; },
-        function () { return legacyCopy(text); }
-      );
-    }
-    return Promise.resolve(legacyCopy(text));
-  }
+  // navigator.clipboard требует защищённого контекста, поэтому нужен запасной путь
+  const writeClipboard = (text) =>
+    navigator.clipboard?.writeText
+      ? navigator.clipboard.writeText(text).then(() => true, () => legacyCopy(text))
+      : Promise.resolve(legacyCopy(text));
 
   function copyCurrent() {
-    var quote = state.deck[state.pos];
+    const quote = state.phase === 'ready' ? state.deck[state.pos] : null;
     if (!quote) {
       return;
     }
 
-    var payload = '«' + quote.text + '»\n— ' + quote.author +
+    const payload = '«' + quote.text + '»\n— ' + quote.author +
       (quote.category ? ' (' + quote.category + ')' : '');
 
-    writeClipboard(payload).then(function (copied) {
-      setStatus(copied ? 'Скопировано ✓' : 'Не удалось скопировать в буфер обмена', copied ? 'ok' : 'error');
+    writeClipboard(payload).then((copied) => {
+      flash(copied ? 'Скопировано ✓' : 'Не удалось скопировать в буфер обмена', copied ? 'ok' : 'error');
       if (copied) {
-        window.clearTimeout(state.copyTimer);
+        clearTimeout(copyTimer);
         els.copy.classList.add('is-ok');
-        state.copyTimer = window.setTimeout(function () {
-          els.copy.classList.remove('is-ok');
-        }, FEEDBACK_MS);
+        copyTimer = setTimeout(() => els.copy.classList.remove('is-ok'), FEEDBACK_MS);
       }
     });
   }
 
   // --- события ------------------------------------------------------------
 
-  els.next.addEventListener('click', showNext);
-  els.prev.addEventListener('click', showPrev);
+  els.next.addEventListener('click', next);
+  els.prev.addEventListener('click', prev);
   els.copy.addEventListener('click', copyCurrent);
   els.retry.addEventListener('click', load);
 
-  function isTypingContext(element) {
-    if (!element || !element.tagName) {
-      return false;
-    }
-    var tag = element.tagName;
-    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || element.isContentEditable === true;
-  }
-
-  document.addEventListener('keydown', function (event) {
-    if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) {
-      return;
-    }
-    if (isTypingContext(event.target)) {
+  document.addEventListener('keydown', (event) => {
+    if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.repeat) {
       return;
     }
 
-    var key = event.key;
+    // если фокус на кнопке — не мешаем её собственному действию
+    const onButton = event.target && event.target.tagName === 'BUTTON';
 
-    if (key === 'ArrowRight') {
+    if (event.key === 'ArrowRight') {
       event.preventDefault();
-      showNext();
+      next();
       return;
     }
 
-    if (key === 'ArrowLeft') {
+    if (event.key === 'ArrowLeft') {
       event.preventDefault();
-      showPrev();
+      prev();
       return;
     }
 
-    if (key === ' ' || key === 'Spacebar' || key === 'Enter') {
-      // если фокус на кнопке — не мешаем её собственному действию
-      if (event.target && event.target.tagName === 'BUTTON') {
+    if (event.key === ' ' || event.key === 'Enter') {
+      if (onButton) {
         return;
       }
       event.preventDefault();
-      showNext();
+      next();
       return;
     }
 
-    if (!event.shiftKey && key.length === 1) {
-      var lower = key.toLowerCase();
-      // 'c' — латиница, 'с' — та же клавиша в русской раскладке
-      if (lower === 'c' || lower === 'с') {
-        event.preventDefault();
-        copyCurrent();
-      }
+    // 'c' — латиница, 'с' — та же клавиша в русской раскладке
+    const lower = event.key.toLowerCase();
+    if (lower === 'c' || lower === 'с') {
+      event.preventDefault();
+      copyCurrent();
     }
   });
 
+  draw();
   load();
-}());
+})();
 </script>
 </body>
 </html>
