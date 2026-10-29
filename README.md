@@ -3,7 +3,7 @@
 Одностраничное веб-приложение на чистом HTML/CSS/JavaScript, которое показывает случайные цитаты из отдельного JSON-файла. Без сборки, без зависимостей, без бэкенда: достаточно открыть страницу в браузере.
 
 - Репозиторий: <https://github.com/gbigwave14-cyber/quotes-project>
-- Страница приложения: [`quote-v2.html`](quote-v2.html)
+- Страница приложения: [`quote.html`](quote.html)
 - Данные: [`quotes-ru.json`](quotes-ru.json)
 
 ## Возможности
@@ -22,13 +22,13 @@
 
 ## Быстрый старт
 
-Просто откройте `quote-v2.html` в браузере — файл работает и по протоколу `file://`, потому что `raw.githubusercontent.com` отдаёт `Access-Control-Allow-Origin: *`.
+Просто откройте `quote.html` в браузере — файл работает и по протоколу `file://`, потому что `raw.githubusercontent.com` отдаёт `Access-Control-Allow-Origin: *`.
 
 Альтернатива — локальный статический сервер:
 
 ```bash
 python -m http.server 8000
-# затем http://localhost:8000/quote-v2.html
+# затем http://localhost:8000/quote.html
 ```
 
 Сеть нужна только для первой загрузки в сутки: дальше набор берётся из локального кэша (см. раздел «Кэш на день»).
@@ -46,7 +46,7 @@ python -m http.server 8000
 
 ## Источник данных
 
-Приложение запрашивает JSON по адресу, заданному константой `SOURCE_URL` в начале `<script>` страницы `quote-v2.html`:
+Приложение запрашивает JSON по адресу, заданному константой `SOURCE_URL` в начале `<script>` страницы `quote.html`:
 
 ```js
 const SOURCE_URL = 'https://raw.githubusercontent.com/gbigwave14-cyber/quotes-project/main/quotes-ru.json';
